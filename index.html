@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estudo de Impacto — Iniciativa Prompt ChatGPT | Security BR | Melicidade</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#2c3e50;font-size:14px}
+  a{color:#009EE3}
+
+  /* Layout */
+  .container{max-width:1200px;margin:0 auto;padding:24px 16px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+  /* Header */
+  .header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:white;padding:36px 40px;border-radius:12px;margin-bottom:24px}
+  .header h1{font-size:22px;font-weight:700;margin-bottom:6px;letter-spacing:-0.3px}
+  .header .subtitle{font-size:13px;opacity:0.75;margin-bottom:14px}
+  .header .tags{display:flex;gap:8px;flex-wrap:wrap}
+  .tag{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}
+  .tag.yellow{background:#FFE600;color:#1a1a2e;border-color:#FFE600}
+
+  /* Cards */
+  .card{background:white;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.07)}
+  .card h2{font-size:14px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px}
+  .card h3{font-size:15px;font-weight:600;margin-bottom:12px;color:#1a1a2e}
+
+  /* Section title */
+  .section-title{font-size:17px;font-weight:700;color:#1a1a2e;margin:28px 0 14px;padding-left:12px;border-left:4px solid #009EE3}
+
+  /* KPI summary cards */
+  .kpi-card{background:white;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.07);border-top:3px solid #009EE3}
+  .kpi-card.green{border-color:#00A650}
+  .kpi-card.red{border-color:#E74C3C}
+  .kpi-card.orange{border-color:#FF9800}
+  .kpi-label{font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;margin-bottom:6px}
+  .kpi-value{font-size:28px;font-weight:800;color:#1a1a2e;line-height:1}
+  .kpi-sub{font-size:11px;color:#6b7280;margin-top:4px}
+  .kpi-trend{display:inline-block;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:6px}
+  .kpi-trend.up-good{background:#dcfce7;color:#15803d}
+  .kpi-trend.down-good{background:#dcfce7;color:#15803d}
+  .kpi-trend.up-bad{background:#fef2f2;color:#dc2626}
+  .kpi-trend.neutral{background:#f1f5f9;color:#475569}
+
+  /* Rep chips */
+  .rep-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600}
+  .chip-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .chip.ms{background:#dcfce7;color:#15803d}.chip.ms .chip-dot{background:#00A650}
+  .chip.ka{background:#dbeafe;color:#1d4ed8}.chip.ka .chip-dot{background:#3498DB}
+  .chip.rd{background:#fff7ed;color:#c2410c}.chip.rd .chip-dot{background:#E67E22}
+  .chip.an{background:#fdf4ff;color:#7e22ce}.chip.an .chip-dot{background:#9B59B6}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f8fafc;color:#475569;font-weight:600;padding:8px 12px;text-align:left;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:0.3px}
+  td{padding:8px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  tr:hover td{background:#fafbfc}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase}
+  .badge.critico{background:#fee2e2;color:#dc2626}
+  .badge.atencao{background:#fef3c7;color:#d97706}
+  .badge.ok{background:#d1fae5;color:#065f46}
+  .badge.teste{background:#e0f2fe;color:#0369a1}
+  .badge.ref{background:#f3e8ff;color:#7c3aed}
+
+  /* Insight boxes */
+  .insight{border-radius:8px;padding:14px 16px;margin-top:12px;display:flex;gap:12px;align-items:flex-start}
+  .insight.alert{background:#fff1f0;border-left:3px solid #E74C3C}
+  .insight.good{background:#f0fff4;border-left:3px solid #00A650}
+  .insight.info{background:#eff8ff;border-left:3px solid #009EE3}
+  .insight.warn{background:#fffbe6;border-left:3px solid #FF9800}
+  .insight-icon{font-size:18px;line-height:1.2}
+  .insight-text{font-size:12px;line-height:1.6;color:#374151}
+  .insight-text strong{color:#1a1a2e}
+
+  /* Chart containers */
+  .chart-wrap{position:relative;height:280px;margin-top:8px}
+  .chart-wrap.tall{height:340px}
+  .chart-wrap.short{height:220px}
+
+  /* Projection table */
+  .proj-table td.better{color:#00A650;font-weight:700}
+  .proj-table td.worse{color:#E74C3C;font-weight:700}
+
+  /* Group cards */
+  .group-card{background:white;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.07);border-top:3px solid #ccc}
+  .group-card.g1{border-color:#00A650}
+  .group-card.g2{border-color:#E74C3C}
+  .group-card.g3{border-color:#FF9800}
+  .group-card.g4{border-color:#3498DB}
+  .group-title{font-size:13px;font-weight:700;margin-bottom:6px}
+  .group-reps{font-size:11px;color:#6b7280;margin-bottom:8px}
+  .timeline-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+  .timeline-dot{width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0}
+  .timeline-dot.done{background:#00A650;color:white}
+  .timeline-dot.mid{background:#FF9800;color:white}
+  .timeline-dot.target{background:#009EE3;color:white}
+  .timeline-content{flex:1}
+  .timeline-label{font-weight:600;color:#1a1a2e}
+  .timeline-desc{color:#6b7280}
+
+  /* Footer */
+  .footer{text-align:center;color:#9ca3af;font-size:11px;padding:24px;margin-top:24px}
+  .footer strong{color:#6b7280}
+
+  @media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Estudo de Impacto — Iniciativa Prompt ChatGPT para Casos Offline</h1>
+  <div class="subtitle">Cola Security BR · Oficina Melicidade · Mercado Pago · Análise extraída em 28/mai/2026</div>
+  <div class="tags">
+    <span class="tag yellow">Security BR — BR_Security_MP</span>
+    <span class="tag">Melicidade (Interno)</span>
+    <span class="tag">Canal Offline</span>
+    <span class="tag">Período: Set/25 – Mai/26</span>
+  </div>
+</div>
+
+<!-- EXECUTIVE SUMMARY -->
+<div class="section-title">Resumo Executivo</div>
+<div class="grid-4">
+  <div class="kpi-card green">
+    <div class="kpi-label">TMO Offline — msaquino</div>
+    <div class="kpi-value">10m 18s</div>
+    <div class="kpi-sub">Entrada: 24m 53s (jan/26)</div>
+    <div class="kpi-trend down-good">-59% em 5 meses com prompt</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">Karereis — 1º mês de uso</div>
+    <div class="kpi-value">-50%</div>
+    <div class="kpi-sub">TMO: 28m 03s → 14m 06s</div>
+    <div class="kpi-trend down-good">Semana 3 de maio/26</div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-label">NPS Offline Macro</div>
+    <div class="kpi-value">31,9%</div>
+    <div class="kpi-sub">vs NPS Multicanal: 63,6%</div>
+    <div class="kpi-trend up-bad">Gap de 31,7pp em mai/26</div>
+  </div>
+  <div class="kpi-card orange">
+    <div class="kpi-label">Projeção com 10 reps</div>
+    <div class="kpi-value">145h/mês</div>
+    <div class="kpi-sub">Capacidade recuperada em 90 dias</div>
+    <div class="kpi-trend neutral">≈ 0,8 FTE equivalente</div>
+  </div>
+</div>
+
+<!-- SECTION 1: GRUPO DE TESTE -->
+<div class="section-title">1. Grupo de Teste — Evolução em Maio/26 (Semana a Semana)</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="rep-chips">
+    <span class="chip ms"><span class="chip-dot"></span>msaquino — usando desde 01/jan/26</span>
+    <span class="chip ka"><span class="chip-dot"></span>karereis — desde 01/mai/26 · NEWBIE</span>
+    <span class="chip rd"><span class="chip-dot"></span>rdealmeida — desde 01/mai/26</span>
+    <span class="chip an"><span class="chip-dot"></span>anamonteiro — desde 22/mai/26</span>
+  </div>
+  <div class="insight info">
+    <span class="insight-icon">ℹ</span>
+    <span class="insight-text"><strong>O primeiro mês não é métrica:</strong> msaquino em jan/26 (1º mês) teve seu pior TMO da série — 24m53s. O ganho real veio a partir do 2º mês. Espera-se o mesmo padrão para karereis e rdealmeida.</span>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>TMO Offline — Evolução Semanal (minutos)</h3>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Linha tracejada = média do grupo controle (~17 min)</div>
+    <div class="chart-wrap">
+      <canvas id="chartTMOSemanal"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <h3>NPS Offline — Evolução Semanal (%)</h3>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Volumes pequenos (3–9 aval./semana) — oscilação é esperada</div>
+    <div class="chart-wrap">
+      <canvas id="chartNPSSemanal"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- weekly table -->
+<div class="card" style="margin-top:20px">
+  <h3>Tabela semanal — TMO Offline</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Semana</th>
+        <th>msaquino <span class="badge teste">★ TESTE</span></th>
+        <th>karereis <span class="badge teste">★ TESTE</span></th>
+        <th>rdealmeida <span class="badge teste">★ TESTE</span></th>
+        <th>anamonteiro <span class="badge teste">★ TESTE</span></th>
+        <th>Referência controle</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>27/abr</td><td><strong>9m 22s</strong></td><td style="color:#9ca3af">sem dados</td><td>26m 51s</td><td>23m 50s</td><td style="color:#9ca3af">~17 min</td></tr>
+      <tr><td>04/mai</td><td>13m 52s</td><td>28m 03s</td><td>30m 22s</td><td>16m 31s</td><td style="color:#9ca3af">~17 min</td></tr>
+      <tr><td>11/mai</td><td><strong>8m 41s</strong></td><td>22m 17s</td><td>24m 59s</td><td>14m 09s</td><td style="color:#9ca3af">~17 min</td></tr>
+      <tr style="background:#f0fdf4"><td><strong>19/mai ↓</strong></td><td><strong>9m 40s</strong></td><td><strong style="color:#00A650">14m 06s ↓</strong></td><td><strong style="color:#00A650">18m 11s ↓</strong></td><td><strong style="color:#00A650">11m 45s ↓</strong></td><td style="color:#9ca3af">~17 min</td></tr>
+      <tr><td>26/mai</td><td><strong>8m 03s</strong></td><td>16m 26s</td><td>25m 16s</td><td>15m 42s</td><td style="color:#9ca3af">~17 min</td></tr>
+    </tbody>
+  </table>
+  <div class="insight good" style="margin-top:12px">
+    <span class="insight-icon">↓</span>
+    <span class="insight-text"><strong>Semana de 19/mai:</strong> karereis atingiu 14m06s (-50% vs semana 1), rdealmeida chegou a 18m11s (-40%) e anamonteiro a 11m45s. Os três que estavam acima da média do controle cruzaram abaixo dela pela primeira vez.</span>
+  </div>
+</div>
+
+<!-- SECTION 2: VISÃO MACRO -->
+<div class="section-title">2. Visão Macro — Melicidade: NPS e TMO por Canal</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>NPS Multicanal vs NPS Offline — Melicidade</h3>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Multicanal = média ponderada CHAT + C2C. Offline = canal email/offline.</div>
+    <div class="chart-wrap tall">
+      <canvas id="chartNPSMacro"></canvas>
+    </div>
+    <div class="insight alert" style="margin-top:12px">
+      <span class="insight-icon">⚠</span>
+      <span class="insight-text"><strong>Gap de 31,7pp em mai/26:</strong> NPS Multicanal chegou a 63,6% (melhor do período) enquanto NPS Offline caiu para 31,9%. Em jan/26 o canal Offline ainda estava acima do Multicanal (71,8% vs 57,7%). A explosão de volume a partir de março (66 → 319 avaliações/mês) diluiu o NPS Offline.</span>
+    </div>
+  </div>
+  <div class="card">
+    <h3>TMO Multicanal vs TMO Offline — Melicidade</h3>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">TMO em minutos. Offline até mai/26 era mais rápido que multicanal.</div>
+    <div class="chart-wrap tall">
+      <canvas id="chartTMOMacro"></canvas>
+    </div>
+    <div class="insight alert" style="margin-top:12px">
+      <span class="insight-icon">⚠</span>
+      <span class="insight-text"><strong>Cruzamento em mai/26 — alerta inédito:</strong> TMO Offline (17m02s) ultrapassou TMO Multicanal (16m13s) pela primeira vez na série. O canal offline, que historicamente era mais rápido, tornou-se mais lento em maio. Este é o momento de agir.</span>
+    </div>
+  </div>
+</div>
+
+<!-- impact context -->
+<div class="card" style="margin-top:20px">
+  <h3>Como o canal Offline impacta o resultado geral da Melicidade</h3>
+  <div class="grid-3" style="margin-top:12px">
+    <div style="text-align:center;padding:16px;background:#fef2f2;border-radius:8px">
+      <div style="font-size:24px;font-weight:800;color:#E74C3C">31,7pp</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">Gap NPS Offline vs Multicanal em mai/26</div>
+      <div style="font-size:10px;color:#9ca3af;margin-top:2px">Era positivo em jan/26 (+14,1pp)</div>
+    </div>
+    <div style="text-align:center;padding:16px;background:#fef2f2;border-radius:8px">
+      <div style="font-size:24px;font-weight:800;color:#E74C3C">+4,8 min</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">TMO Offline acima do Multicanal em mai/26</div>
+      <div style="font-size:10px;color:#9ca3af;margin-top:2px">Era 2,9 min mais rápido em set/25</div>
+    </div>
+    <div style="text-align:center;padding:16px;background:#eff8ff;border-radius:8px">
+      <div style="font-size:24px;font-weight:800;color:#009EE3">64.872</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">Atendimentos offline/mês na Melicidade</div>
+      <div style="font-size:10px;color:#9ca3af;margin-top:2px">BR_Security_MP = ~3.400/mês (~5%)</div>
+    </div>
+  </div>
+  <div class="insight info" style="margin-top:12px">
+    <span class="insight-icon">ℹ</span>
+    <span class="insight-text">O NPS Offline tem impacto limitado no NPS consolidado da Melicidade porque representa apenas ~0,5–0,6% do total de avaliações (47 aval. em mai/26 vs ~8.400 do multicanal). Já o <strong>TMO Offline impacta a capacidade operacional</strong>: representa ~15% dos atendimentos totais mensais. Se o TMO Offline sobe, a fila acumula e a capacidade cai sem que o número de reps mude.</span>
+  </div>
+</div>
+
+<!-- SECTION 3: CANDIDATOS -->
+<div class="section-title">3. Candidatos à Expansão — BR_Security_MP</div>
+
+<div class="card">
+  <h3>Estado atual dos 10 candidatos prioritários (abr+mai/26 consolidado)</h3>
+  <div class="chart-wrap" style="height:300px">
+    <canvas id="chartCandidatos"></canvas>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <h3>Tabela de candidatos — TMO + NPS + contexto de priorização</h3>
+  <table class="proj-table">
+    <thead>
+      <tr>
+        <th>Rep</th>
+        <th>Senioridade</th>
+        <th>TMO Offline</th>
+        <th>NPS Offline</th>
+        <th>Atend./mês</th>
+        <th>Aval./mês</th>
+        <th>Grupo</th>
+        <th>Prioridade</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>dpimentel</strong></td><td>EXPERT</td><td class="worse">40m 09s</td><td class="worse">21,2%</td><td>56</td><td>17</td><td>2</td><td><span class="badge critico">Crítico</span></td></tr>
+      <tr><td><strong>carolinymarq</strong></td><td>NEWBIE</td><td class="worse">43m 18s</td><td>56,5%</td><td>62</td><td>12</td><td>3</td><td><span class="badge atencao">TMO Crítico</span></td></tr>
+      <tr><td><strong>respindola</strong></td><td>NEWBIE</td><td class="worse">38m 59s</td><td>55,0%</td><td>67</td><td>10</td><td>3</td><td><span class="badge atencao">TMO Crítico</span></td></tr>
+      <tr><td><strong>llesse</strong></td><td>NEWBIE</td><td class="worse">36m 48s</td><td>78,3%</td><td>67</td><td>12</td><td>3</td><td><span class="badge atencao">TMO Crítico</span></td></tr>
+      <tr><td><strong>felaraujo</strong></td><td>EXPERT</td><td class="worse">25m 40s</td><td class="worse">42,9%</td><td>121</td><td>21</td><td>1</td><td><span class="badge critico">Crítico</span></td></tr>
+      <tr><td><strong>sanramos</strong></td><td>EXPERT</td><td class="worse">24m 53s</td><td class="worse">30,4%</td><td>73</td><td>23</td><td>1</td><td><span class="badge critico">Crítico</span></td></tr>
+      <tr><td><strong>vidferreira</strong></td><td>EXPERT</td><td class="worse">26m 01s</td><td>66,0%</td><td>104</td><td>27</td><td>1</td><td><span class="badge atencao">TMO Alto</span></td></tr>
+      <tr><td>aconrado</td><td>EXPERT</td><td>19m 10s</td><td>60,6%</td><td>85</td><td>17</td><td>4</td><td><span class="badge atencao">Atenção</span></td></tr>
+      <tr><td>ksobral</td><td>NEWBIE</td><td>17m 43s</td><td class="worse">41,0%</td><td>89</td><td>20</td><td>4</td><td><span class="badge atencao">NPS Baixo</span></td></tr>
+      <tr><td>nrinaldi</td><td>NEWBIE</td><td>18m 15s</td><td>53,8%</td><td>79</td><td>7</td><td>4</td><td><span class="badge atencao">Atenção</span></td></tr>
+      <tr style="background:#f0fff4"><td><strong>msaquino ★</strong></td><td>EXPERT</td><td class="better">10m 18s</td><td class="better">76,0%</td><td>132</td><td>25</td><td>—</td><td><span class="badge ref">Referência</span></td></tr>
+    </tbody>
+  </table>
+  <div class="insight good" style="margin-top:12px">
+    <span class="insight-icon">★</span>
+    <span class="insight-text"><strong>Grupo 1 (felaraujo, sanramos, vidferreira)</strong> — EXPERTs com TMO entre 24–26 min, idêntico ao ponto de entrada de msaquino em jan/26 (24m53s). São os candidatos com trajetória mais previsível e resultados mais rápidos. msaquino saiu de 24m53s para 10m18s em 4 meses.</span>
+  </div>
+</div>
+
+<!-- SECTION 4: PROJEÇÕES -->
+<div class="section-title">4. Projeção de Impacto — 10 Candidatos com o Prompt</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h3>Projeção de TMO por rep — atual vs 90 dias vs 180 dias (em minutos)</h3>
+  <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Premissas: Grupo 1 (EXPERT análogo) -55% em 90d / -59% em 180d · Grupo 2 (dpimentel) -37% / -50% · Grupo 3 (NEWBIE) -30% / -50% · Grupo 4 -25 a 35% / -35 a 45%</div>
+  <div class="chart-wrap tall">
+    <canvas id="chartProjecaoTMO"></canvas>
+  </div>
+  <div class="insight info" style="margin-top:12px">
+    <span class="insight-icon">ℹ</span>
+    <span class="insight-text"><strong>Sobre o mês 1:</strong> msaquino teve seu pior TMO justamente no 1º mês de uso do prompt (jan/26: 24m53s, maior da série). O ganho real começa no mês 2. Não medir resultado no 1º mês — esperar o período de adaptação.</span>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Horas de capacidade recuperadas por mês</h3>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Baseado em volume atual × redução de TMO projetada</div>
+    <div class="chart-wrap">
+      <canvas id="chartHorasProj"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Projeção de NPS por rep — atual vs 90d vs 180d</h3>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:6px">NPS é mais lento e mais volátil que TMO. Volumes pequenos (7–27 aval./mês) amplificam oscilação.</div>
+    <div class="chart-wrap">
+      <canvas id="chartProjecaoNPS"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Impact summary -->
+<div class="grid-3" style="margin-top:20px">
+  <div class="kpi-card green">
+    <div class="kpi-label">Capacidade Recuperada — 90 dias</div>
+    <div class="kpi-value">145h</div>
+    <div class="kpi-sub">por mês · ≈ 0,8 FTE equivalente</div>
+    <div class="kpi-trend down-good">vs 112h estimativa original (+29%)</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">Capacidade Recuperada — 180 dias</div>
+    <div class="kpi-value">189h</div>
+    <div class="kpi-sub">por mês · ≈ 1,1 FTE equivalente</div>
+    <div class="kpi-trend down-good">14 dias úteis de processamento/mês</div>
+  </div>
+  <div class="kpi-card orange">
+    <div class="kpi-label">Impacto no NPS da Fila (90d)</div>
+    <div class="kpi-value">+2,8pp</div>
+    <div class="kpi-sub">No NPS Offline da fila Security BR</div>
+    <div class="kpi-trend neutral">Os 10 reps = ~25% das avaliações</div>
+  </div>
+</div>
+
+<!-- NPS / TMO projection detail -->
+<div class="card" style="margin-top:20px">
+  <h3>Detalhe por rep — NPS e TMO projetados aos 90 e 180 dias</h3>
+  <table class="proj-table">
+    <thead>
+      <tr>
+        <th>Rep</th>
+        <th>Grupo</th>
+        <th>TMO Atual</th>
+        <th>TMO 90d</th>
+        <th>TMO 180d</th>
+        <th>Horas salvas/mês (90d)</th>
+        <th>NPS Atual</th>
+        <th>NPS 90d</th>
+        <th>NPS 180d</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background:#f0fff4"><td><strong>felaraujo</strong></td><td>1 — Análogo</td><td>25m 40s</td><td class="better">11m 33s</td><td class="better">10m 33s</td><td><strong>28,5h</strong></td><td>42,9%</td><td class="better">55–58%</td><td class="better">62–65%</td></tr>
+      <tr style="background:#f0fff4"><td><strong>vidferreira</strong></td><td>1 — Análogo</td><td>26m 01s</td><td class="better">11m 42s</td><td class="better">10m 42s</td><td><strong>24,8h</strong></td><td>66,0%</td><td class="better">76–78%</td><td class="better">80%</td></tr>
+      <tr style="background:#f0fff4"><td><strong>sanramos</strong></td><td>1 — Análogo</td><td>24m 53s</td><td class="better">11m 12s</td><td class="better">10m 12s</td><td><strong>16,6h</strong></td><td>30,4%</td><td class="better">40–42%</td><td class="better">50–54%</td></tr>
+      <tr><td><strong>dpimentel</strong></td><td>2 — Acima M0</td><td>40m 09s</td><td>25m 20s</td><td class="better">20m 10s</td><td><strong>14,2h</strong></td><td class="worse">21,2%</td><td>28–33%</td><td>37–42%</td></tr>
+      <tr><td>carolinymarq</td><td>3 — NEWBIE</td><td>43m 18s</td><td>30m 20s</td><td class="better">21m 40s</td><td><strong>13,4h</strong></td><td>56,5%</td><td class="better">64–66%</td><td class="better">71–74%</td></tr>
+      <tr><td>respindola</td><td>3 — NEWBIE</td><td>38m 59s</td><td>27m 17s</td><td class="better">19m 30s</td><td><strong>13,1h</strong></td><td>55,0%</td><td class="better">62–64%</td><td class="better">69–72%</td></tr>
+      <tr><td>llesse</td><td>3 — NEWBIE</td><td>36m 48s</td><td>25m 46s</td><td class="better">18m 24s</td><td><strong>12,3h</strong></td><td>78,3%</td><td class="better">84–86%</td><td class="better">87–90%</td></tr>
+      <tr><td>aconrado</td><td>4 — Intermediário</td><td>19m 10s</td><td>12m 28s</td><td class="better">10m 33s</td><td><strong>9,5h</strong></td><td>60,6%</td><td class="better">68–72%</td><td class="better">74–78%</td></tr>
+      <tr><td>ksobral</td><td>4 — Intermediário</td><td>17m 43s</td><td>13m 17s</td><td class="better">11m 32s</td><td><strong>6,6h</strong></td><td class="worse">41,0%</td><td class="better">49–50%</td><td class="better">55–58%</td></tr>
+      <tr><td>nrinaldi</td><td>4 — Intermediário</td><td>18m 15s</td><td>13m 41s</td><td class="better">11m 50s</td><td><strong>6,0h</strong></td><td>53,8%</td><td class="better">61–63%</td><td class="better">66–70%</td></tr>
+      <tr style="background:#f9fafb;font-weight:700"><td>TOTAL</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="better">145h</td><td>—</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SECTION 5: JORNADA DE REFERÊNCIA + TIMELINE -->
+<div class="section-title">5. Jornada de Referência — msaquino + Timeline por Grupo</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h3>msaquino — evolução mensal desde set/25 (a jornada completa)</h3>
+  <div style="font-size:11px;color:#6b7280;margin-bottom:6px">Linha vertical = início do uso do prompt em 01/jan/26. TMO subiu no 1º mês antes de cair.</div>
+  <div class="chart-wrap">
+    <canvas id="chartMsaquino"></canvas>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="group-card g1">
+    <div class="group-title" style="color:#15803d">Grupo 1 — Análogos Diretos de msaquino</div>
+    <div class="group-reps">felaraujo · sanramos · vidferreira</div>
+    <div class="timeline-row">
+      <div class="timeline-dot mid">M1</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 1 — Adaptação</div>
+        <div class="timeline-desc">TMO pode subir. Não medir resultado. Acompanhar uso diário.</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot done">M2</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 2 — Primeiro ganho real (-40%)</div>
+        <div class="timeline-desc">felaraujo: ~15m40s / sanramos: ~15m / vidferreira: ~15m40s</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot done">M3</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 3 — Aceleração (-55%)</div>
+        <div class="timeline-desc">Todos devem chegar a ~11–12 min. NPS começa a subir.</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot target">M6</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 6 — Estabilização (~10 min)</div>
+        <div class="timeline-desc">Patamar de msaquino. NPS projetado: 55–80% dependendo do rep.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-card g2">
+    <div class="group-title" style="color:#dc2626">Grupo 2 — dpimentel (TMO muito acima do M0 de msaquino)</div>
+    <div class="group-reps">dpimentel · TMO atual: 40m vs entrada msaquino: 24m</div>
+    <div class="timeline-row">
+      <div class="timeline-dot mid">M1</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 1–2 — Adaptação lenta</div>
+        <div class="timeline-desc">TMO pode ir a 42–45m antes de cair. Paciência necessária.</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot mid">M3</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 3 — Chega ao M0 de msaquino (~25m)</div>
+        <div class="timeline-desc">Ponto de partida real. A partir daqui acelera.</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot done">M6</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 6 — ~18–20 min</div>
+        <div class="timeline-desc">NPS: 37–42%. Ainda precisará de acompanhamento de qualidade.</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot target">M9+</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 9+ — Patamar de msaquino (~10 min)</div>
+        <div class="timeline-desc">Se NPS não subir acima de 40% até M4, investigar resolução de casos.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-top:16px">
+  <div class="group-card g3">
+    <div class="group-title" style="color:#d97706">Grupo 3 — NEWBIEs com TMO muito alto</div>
+    <div class="group-reps">carolinymarq · respindola · llesse · (ksobral, nrinaldi)</div>
+    <div class="timeline-row">
+      <div class="timeline-dot mid">M1–3</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Maturação natural + prompt</div>
+        <div class="timeline-desc">-30% no TMO em 90d. Parte da queda é progressão NEWBIE → EXPERT.</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot done">M6</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Mês 6 — 18–22 min (NEWBIE → EXPERT)</div>
+        <div class="timeline-desc">Difícil separar efeito do prompt da maturação. Monitorar consistência de uso.</div>
+      </div>
+    </div>
+    <div class="insight warn" style="margin-top:8px">
+      <span class="insight-icon">!</span>
+      <span class="insight-text" style="font-size:11px">Para NEWBIEs, o prompt <strong>acelera a curva</strong>, mas não é o único motor da melhora. Expectativas de timeline são mais longas.</span>
+    </div>
+  </div>
+
+  <div class="group-card g4">
+    <div class="group-title" style="color:#1d4ed8">Grupo 4 — Zona Intermediária</div>
+    <div class="group-reps">aconrado (EXPERT) · ksobral · nrinaldi (NEWBIEs)</div>
+    <div class="timeline-row">
+      <div class="timeline-dot done">M2–3</div>
+      <div class="timeline-content">
+        <div class="timeline-label">Ganhos menores mas consistentes</div>
+        <div class="timeline-desc">aconrado: 19m → 12–13m. ksobral e nrinaldi: 18m → 13–14m.</div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-dot target">NPS</div>
+      <div class="timeline-content">
+        <div class="timeline-label">ksobral: foco principal é NPS (41%)</div>
+        <div class="timeline-desc">TMO razoável — o prompt aqui melhora a qualidade da comunicação escrita.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <strong>Estudo gerado em 28/mai/2026</strong> · Dados: BigQuery · SBOX_CX_BI_ADS_CORE.CONSOLIDADO_KPI_LDAP · Período analisado: Set/2025 – Mai/2026<br>
+  Cola BR_Security_MP · Oficina Melicidade · Mercado Pago · Canal Offline<br>
+  <em>* Maio/2026 parcial (dados até 27/mai). Volumes menores podem amplificar oscilação nos indicadores de NPS.</em>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+function secToMMSS(s){if(s==null)return'N/A';const m=Math.floor(s/60);const ss=Math.round(s%60);return m+'m '+String(ss).padStart(2,'0')+'s'}
+function toMin(s){return s==null?null:Math.round(s/60*10)/10}
+
+Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
+Chart.defaults.font.size=11;
+
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+// Weekly test group (seconds)
+const weeks=['27/Abr','04/Mai','11/Mai','18/Mai','25/Mai'];
+const wTMO={
+  ms:[562,832,521,580,483],
+  ka:[null,1683,1337,846,986],
+  rd:[1611,1822,1499,1091,1516],
+  an:[1430,991,849,705,942]
+};
+const wNPS={
+  ms:[null,0,100,100,75],
+  ka:[null,16.7,50,-33.3,50],
+  rd:[null,28.6,85.7,57.1,33.3],
+  an:[null,55.6,100,80,100]
+};
+
+// Monthly macro (Sep/25 – May/26)
+const meses=['Set/25','Out/25','Nov/25','Dez/25','Jan/26','Fev/26','Mar/26','Abr/26','Mai/26*'];
+const npsMulti=[61.6,59.7,60.5,57.2,57.7,59.8,61.2,62.8,63.6];
+const npsOff=[56.1,37.6,40.7,61.9,71.8,56.1,32.9,44.2,31.9];
+const tmoMulti=[15.7,16.7,18.5,15.1,17.6,19.3,21.6,20.5,16.2];
+const tmoOff=[14.3,11.8,10.1,10.4,12.8,15.7,12.0,12.2,17.0];
+
+// msaquino journey (monthly, includes NPS)
+const msaMonths=['Set/25','Out/25','Nov/25','Dez/25','Jan/26\n(M0)','Fev/26\n(M+1)','Mar/26\n(M+2)','Abr/26\n(M+3)','Mai/26\n(M+4)'];
+const msaTMO=[1394,1149,938,1267,1493,906,674,621,616].map(s=>Math.round(s/60*10)/10);
+const msaNPS=[75.0,43.5,78.4,73.7,79.2,81.0,87.0,83.3,65.0];
+
+// Candidates current state
+const reps=['dpimentel','carolinymarq','respindola','llesse','felaraujo','sanramos','vidferreira','aconrado','ksobral','nrinaldi','msaquino★'];
+const curTMO=[40.2,43.3,39.0,36.8,25.7,24.9,26.0,19.2,17.7,18.3,10.3];
+const curNPS=[21.2,56.5,55.0,78.3,42.9,30.4,66.0,60.6,41.0,53.8,76.0];
+
+// Projection data (TMO in minutes)
+const reps10=['dpimentel','carolinymarq','respindola','llesse','felaraujo','sanramos','vidferreira','aconrado','ksobral','nrinaldi'];
+const pTMO0=[40.2,43.3,39.0,36.8,25.7,24.9,26.0,19.2,17.7,18.3];
+const pTMO90=[25.3,30.3,27.3,25.8,11.6,11.2,11.7,12.5,13.3,13.7];
+const pTMO180=[20.2,21.7,19.5,18.4,10.6,10.3,10.7,10.6,11.5,11.9];
+const pNPS0=[21.2,56.5,55.0,78.3,42.9,30.4,66.0,60.6,41.0,53.8];
+const pNPS90=[30,65,63,85,57,41,77,70,50,62];
+const pNPS180=[40,72,70,89,63,52,80,76,57,68];
+
+// Hours saved per month at 90d
+const horasSalvas90=[14.2,13.4,13.1,12.3,28.5,16.6,24.8,9.5,6.6,6.0];
+const horasSalvas180=[18.8,22.4,21.8,20.5,30.6,17.9,26.6,12.2,9.2,8.4];
+
+// ─── CHART 1: TMO SEMANAL ──────────────────────────────────────────────────
+new Chart(document.getElementById('chartTMOSemanal'),{
+  type:'line',
+  data:{
+    labels:weeks,
+    datasets:[
+      {label:'msaquino (desde jan/26)',data:wTMO.ms.map(toMin),borderColor:'#00A650',backgroundColor:'rgba(0,166,80,0.08)',borderWidth:2.5,pointRadius:4,pointHoverRadius:6,tension:0.3},
+      {label:'karereis (desde 01/mai)',data:wTMO.ka.map(toMin),borderColor:'#3498DB',backgroundColor:'rgba(52,152,219,0.08)',borderWidth:2.5,pointRadius:4,pointHoverRadius:6,tension:0.3,spanGaps:false},
+      {label:'rdealmeida (desde 01/mai)',data:wTMO.rd.map(toMin),borderColor:'#E67E22',backgroundColor:'rgba(230,126,34,0.08)',borderWidth:2.5,pointRadius:4,pointHoverRadius:6,tension:0.3},
+      {label:'anamonteiro (desde 22/mai)',data:wTMO.an.map(toMin),borderColor:'#9B59B6',backgroundColor:'rgba(155,89,182,0.08)',borderWidth:2.5,pointRadius:4,pointHoverRadius:6,tension:0.3},
+      {label:'Controle (~17 min)',data:[17,17,17,17,17],borderColor:'#95A5A6',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10}}},
+      tooltip:{callbacks:{label:function(c){const v=c.raw;if(v==null)return c.dataset.label+': N/A';const s=Math.round(v*60);return c.dataset.label+': '+secToMMSS(s)}}}
+    },
+    scales:{
+      y:{min:0,max:35,title:{display:true,text:'TMO (minutos)'},grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'m'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ─── CHART 2: NPS SEMANAL ─────────────────────────────────────────────────
+new Chart(document.getElementById('chartNPSSemanal'),{
+  type:'line',
+  data:{
+    labels:weeks,
+    datasets:[
+      {label:'msaquino',data:wNPS.ms,borderColor:'#00A650',backgroundColor:'rgba(0,166,80,0.08)',borderWidth:2.5,pointRadius:4,tension:0.3,spanGaps:false},
+      {label:'karereis',data:wNPS.ka,borderColor:'#3498DB',backgroundColor:'rgba(52,152,219,0.08)',borderWidth:2.5,pointRadius:4,tension:0.3,spanGaps:false},
+      {label:'rdealmeida',data:wNPS.rd,borderColor:'#E67E22',backgroundColor:'rgba(230,126,34,0.08)',borderWidth:2.5,pointRadius:4,tension:0.3,spanGaps:false},
+      {label:'anamonteiro',data:wNPS.an,borderColor:'#9B59B6',backgroundColor:'rgba(155,89,182,0.08)',borderWidth:2.5,pointRadius:4,tension:0.3,spanGaps:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10}}},
+      tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+(c.raw!=null?c.raw.toFixed(1)+'%':'N/A')}}}
+    },
+    scales:{
+      y:{min:-50,max:100,title:{display:true,text:'NPS (%)'},grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ─── CHART 3: NPS MACRO ────────────────────────────────────────────────────
+new Chart(document.getElementById('chartNPSMacro'),{
+  type:'line',
+  data:{
+    labels:meses,
+    datasets:[
+      {label:'NPS Multicanal (CHAT+C2C)',data:npsMulti,borderColor:'#009EE3',backgroundColor:'rgba(0,158,227,0.1)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3},
+      {label:'NPS OFFLINE',data:npsOff,borderColor:'#E74C3C',backgroundColor:'rgba(231,76,60,0.1)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'%'}}
+    },
+    scales:{
+      y:{min:20,max:80,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ─── CHART 4: TMO MACRO ────────────────────────────────────────────────────
+new Chart(document.getElementById('chartTMOMacro'),{
+  type:'line',
+  data:{
+    labels:meses,
+    datasets:[
+      {label:'TMO Multicanal (CHAT+C2C)',data:tmoMulti,borderColor:'#009EE3',backgroundColor:'rgba(0,158,227,0.1)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3},
+      {label:'TMO OFFLINE',data:tmoOff,borderColor:'#E74C3C',backgroundColor:'rgba(231,76,60,0.1)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:c=>{const s=Math.round(c.raw*60);return c.dataset.label+': '+c.raw.toFixed(1)+'min ('+secToMMSS(s)+')'}}}
+    },
+    scales:{
+      y:{min:8,max:25,title:{display:true,text:'TMO (minutos)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ─── CHART 5: CANDIDATOS (BUBBLE/BAR COMBO) ───────────────────────────────
+const barColors=reps.map((r,i)=>{
+  if(r==='msaquino★')return'rgba(0,166,80,0.85)';
+  if(curNPS[i]<35&&curTMO[i]>20)return'rgba(231,76,60,0.8)';
+  if(curTMO[i]>30)return'rgba(230,126,34,0.75)';
+  if(curNPS[i]<45)return'rgba(255,152,0,0.8)';
+  return'rgba(0,158,227,0.75)';
+});
+new Chart(document.getElementById('chartCandidatos'),{
+  type:'bar',
+  data:{
+    labels:reps,
+    datasets:[
+      {label:'TMO Offline (min)',data:curTMO,backgroundColor:barColors,borderRadius:4,yAxisID:'y'},
+      {label:'NPS Offline (%)',data:curNPS,type:'line',borderColor:'#1a1a2e',backgroundColor:'rgba(26,26,46,0.1)',borderWidth:2,pointRadius:5,pointBackgroundColor:'#1a1a2e',yAxisID:'y2',tension:0.2}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:c=>{if(c.datasetIndex===0){const s=Math.round(c.raw*60);return'TMO: '+secToMMSS(s)}return'NPS: '+c.raw.toFixed(1)+'%'}}}
+    },
+    scales:{
+      y:{position:'left',min:0,max:50,title:{display:true,text:'TMO (min)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
+      y2:{position:'right',min:0,max:100,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{display:false}},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ─── CHART 6: PROJEÇÃO TMO ────────────────────────────────────────────────
+new Chart(document.getElementById('chartProjecaoTMO'),{
+  type:'bar',
+  data:{
+    labels:reps10,
+    datasets:[
+      {label:'Atual',data:pTMO0,backgroundColor:'rgba(231,76,60,0.7)',borderRadius:3},
+      {label:'90 dias',data:pTMO90,backgroundColor:'rgba(255,152,0,0.7)',borderRadius:3},
+      {label:'180 dias',data:pTMO180,backgroundColor:'rgba(0,166,80,0.7)',borderRadius:3},
+      {label:'msaquino (referência)',data:new Array(10).fill(10.3),type:'line',borderColor:'#7c3aed',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:c=>{if(c.dataset.type==='line')return'Ref msaquino: 10m 18s';const s=Math.round(c.raw*60);return c.dataset.label+': '+secToMMSS(s)}}}
+    },
+    scales:{
+      y:{min:0,max:50,title:{display:true,text:'TMO (minutos)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ─── CHART 7: HORAS SALVAS ────────────────────────────────────────────────
+new Chart(document.getElementById('chartHorasProj'),{
+  type:'bar',
+  data:{
+    labels:reps10,
+    datasets:[
+      {label:'Horas salvas — 90d',data:horasSalvas90,backgroundColor:'rgba(0,158,227,0.75)',borderRadius:4},
+      {label:'Horas salvas — 180d',data:horasSalvas180,backgroundColor:'rgba(0,166,80,0.75)',borderRadius:4}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'h/mês'}}
+    },
+    scales:{
+      y:{title:{display:true,text:'Horas/mês'},grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ─── CHART 8: NPS PROJEÇÃO ────────────────────────────────────────────────
+new Chart(document.getElementById('chartProjecaoNPS'),{
+  type:'bar',
+  data:{
+    labels:reps10,
+    datasets:[
+      {label:'NPS Atual',data:pNPS0,backgroundColor:'rgba(231,76,60,0.7)',borderRadius:3},
+      {label:'NPS 90d',data:pNPS90,backgroundColor:'rgba(255,152,0,0.7)',borderRadius:3},
+      {label:'NPS 180d',data:pNPS180,backgroundColor:'rgba(0,166,80,0.7)',borderRadius:3},
+      {label:'msaquino (ref 76%)',data:new Array(10).fill(76),type:'line',borderColor:'#7c3aed',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:c=>c.dataset.type==='line'?'Ref msaquino NPS: 76%':c.dataset.label+': '+c.raw+'%'}}
+    },
+    scales:{
+      y:{min:0,max:100,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ─── CHART 9: MSAQUINO JOURNEY ────────────────────────────────────────────
+new Chart(document.getElementById('chartMsaquino'),{
+  type:'line',
+  data:{
+    labels:msaMonths,
+    datasets:[
+      {label:'TMO Offline (min)',data:msaTMO,borderColor:'#E74C3C',backgroundColor:'rgba(231,76,60,0.07)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3,yAxisID:'y'},
+      {label:'NPS (%)',data:msaNPS,borderColor:'#009EE3',backgroundColor:'rgba(0,158,227,0.07)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3,yAxisID:'y2'}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:c=>{if(c.datasetIndex===0){const s=Math.round(c.raw*60);return'TMO: '+secToMMSS(s)}return'NPS: '+c.raw.toFixed(1)+'%'}}}
+    },
+    scales:{
+      y:{position:'left',min:0,max:30,title:{display:true,text:'TMO (min)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
+      y2:{position:'right',min:30,max:100,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{display:false}},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    },
+    annotation:{
+      annotations:{
+        line1:{type:'line',xMin:4,xMax:4,borderColor:'rgba(100,100,100,0.4)',borderWidth:1.5,borderDash:[4,3],label:{content:'Início do prompt',enabled:true,position:'top',font:{size:9}}}
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
