@@ -538,51 +538,45 @@
 function secToMMSS(s){if(s==null)return'N/A';const m=Math.floor(s/60);const ss=Math.round(s%60);return m+'m '+String(ss).padStart(2,'0')+'s'}
 function toMin(s){return s==null?null:Math.round(s/60*10)/10}
 
+// ─── LABEL HELPER (per-chart, bypasses Chart.js options resolver entirely) ──
+// Use in each chart as: plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,cfg);}}]
+function drawLbls(chart,cfg){
+  var ctx=chart.ctx;
+  var fam=Chart.defaults.font.family||'sans-serif';
+  chart.data.datasets.forEach(function(ds,di){
+    if(cfg.skip&&cfg.skip(ds,di))return;
+    var meta=chart.getDatasetMeta(di);
+    if(!meta.visible)return;
+    meta.data.forEach(function(el,idx){
+      var v=ds.data[idx];
+      if(v==null)return;
+      var text=cfg.fmt?cfg.fmt(v,ds,di,idx):String(v);
+      if(!text)return;
+      var col=typeof cfg.col==='function'?cfg.col(ds,di):(cfg.col||'#374151');
+      var fs=cfg.fs||9;
+      var pad=cfg.pad!=null?cfg.pad:4;
+      var rot=cfg.rot||0;
+      ctx.save();
+      ctx.font='600 '+fs+'px '+fam;
+      ctx.fillStyle=col;
+      ctx.textAlign='center';
+      if(rot){
+        ctx.textBaseline='middle';
+        var cy=(el.base!=null)?(el.y+el.base)/2:el.y;
+        ctx.translate(el.x,cy);
+        ctx.rotate(rot*Math.PI/180);
+        ctx.fillText(text,0,0);
+      }else{
+        ctx.textBaseline='bottom';
+        ctx.fillText(text,el.x,el.y-pad);
+      }
+      ctx.restore();
+    });
+  });
+}
+
 Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
 Chart.defaults.font.size=11;
-
-// ─── PLUGIN INLINE DE LABELS (sem dependência externa) ──────────────────────
-Chart.register({
-  id:'dl',
-  afterDatasetsDraw:function(chart){
-    var o=chart.options.plugins&&chart.options.plugins.dl;
-    if(!o)return;
-    var ctx=chart.ctx;
-    chart.data.datasets.forEach(function(ds,di){
-      var meta=chart.getDatasetMeta(di);
-      if(!meta.visible)return;
-      meta.data.forEach(function(el,idx){
-        var v=ds.data[idx];
-        if(v==null)return;
-        var context={dataset:ds,datasetIndex:di,dataIndex:idx};
-        var show=typeof o.display==='function'?o.display(context):(o.display!==false);
-        if(!show)return;
-        var text=o.formatter?o.formatter(v,context):''+v;
-        if(!text)return;
-        var color=typeof o.color==='function'?o.color(context):(o.color||'#374151');
-        var fs=(o.font&&o.font.size)||9;
-        var fw=(o.font&&o.font.weight)||'600';
-        var pad=typeof o.padding==='number'?o.padding:4;
-        var rot=o.rotation||0;
-        ctx.save();
-        ctx.font=fw+' '+fs+'px '+(Chart.defaults.font.family||'sans-serif');
-        ctx.fillStyle=color;
-        ctx.textAlign='center';
-        if(rot){
-          ctx.textBaseline='middle';
-          var cy=(el.base!=null&&el.base!==undefined)?(el.y+el.base)/2:el.y;
-          ctx.translate(el.x,cy);
-          ctx.rotate(rot*Math.PI/180);
-          ctx.fillText(text,0,0);
-        }else{
-          ctx.textBaseline='bottom';
-          ctx.fillText(text,el.x,el.y-pad);
-        }
-        ctx.restore();
-      });
-    });
-  }
-});
 
 // ─── DATA ───────────────────────────────────────────────────────────────────
 
@@ -644,15 +638,18 @@ new Chart(document.getElementById('chartTMOSemanal'),{
       {label:'Controle (~17 min)',data:[17,17,17,17,17],borderColor:'#95A5A6',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    skip:function(ds){return !!ds.borderDash;},
+    fmt:function(v){return v!=null?secToMMSS(Math.round(v*60)):'';}
+  });}}],
   options:{
-    responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},
+    responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10}}},
-      tooltip:{callbacks:{label:function(c){const v=c.raw;if(v==null)return c.dataset.label+': N/A';const s=Math.round(v*60);return c.dataset.label+': '+secToMMSS(s)}}},
-      dl:{display:function(ctx){return !ctx.dataset.borderDash;},formatter:function(v){return v!=null?secToMMSS(Math.round(v*60)):'';},anchor:'end',align:'top',font:{size:9,weight:'600'},color:'#374151',padding:2}
+      tooltip:{callbacks:{label:function(c){const v=c.raw;if(v==null)return c.dataset.label+': N/A';const s=Math.round(v*60);return c.dataset.label+': '+secToMMSS(s)}}}
     },
     scales:{
-      y:{min:0,max:35,title:{display:true,text:'TMO (minutos)'},grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'m'}},
+      y:{min:0,max:42,title:{display:true,text:'TMO (minutos)'},grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'m'}},
       x:{grid:{display:false}}
     }
   }
@@ -670,15 +667,17 @@ new Chart(document.getElementById('chartNPSSemanal'),{
       {label:'anamonteiro',data:wNPS.an,borderColor:'#9B59B6',backgroundColor:'rgba(155,89,182,0.08)',borderWidth:2.5,pointRadius:4,tension:0.3,spanGaps:false}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    fmt:function(v){return v!=null?v.toFixed(0)+'%':'';}
+  });}}],
   options:{
-    responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},
+    responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10}}},
-      tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+(c.raw!=null?c.raw.toFixed(1)+'%':'N/A')}}},
-      dl:{display:true,formatter:function(v){return v!=null?v.toFixed(0)+'%':'';},anchor:'end',align:'top',font:{size:9,weight:'600'},color:'#374151',padding:2}
+      tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+(c.raw!=null?c.raw.toFixed(1)+'%':'N/A')}}}
     },
     scales:{
-      y:{min:-50,max:115,title:{display:true,text:'NPS (%)'},grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},
+      y:{min:-50,max:118,title:{display:true,text:'NPS (%)'},grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},
       x:{grid:{display:false}}
     }
   }
@@ -694,15 +693,17 @@ new Chart(document.getElementById('chartNPSMacro'),{
       {label:'NPS OFFLINE',data:npsOff,borderColor:'#E74C3C',backgroundColor:'rgba(231,76,60,0.1)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    fmt:function(v){return v.toFixed(0)+'%';}
+  });}}],
   options:{
-    responsive:true,maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
-      tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'%'}},
-      dl:{formatter:function(v){return v.toFixed(0)+'%';},anchor:'end',align:'top',font:{size:9,weight:'600'},color:'#374151',padding:2}
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'%'}}
     },
     scales:{
-      y:{min:20,max:80,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},
+      y:{min:20,max:82,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},
       x:{grid:{display:false}}
     }
   }
@@ -718,15 +719,17 @@ new Chart(document.getElementById('chartTMOMacro'),{
       {label:'TMO OFFLINE',data:tmoOff,borderColor:'#E74C3C',backgroundColor:'rgba(231,76,60,0.1)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    fmt:function(v){return v.toFixed(1)+'m';}
+  });}}],
   options:{
-    responsive:true,maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
-      tooltip:{callbacks:{label:c=>{const s=Math.round(c.raw*60);return c.dataset.label+': '+c.raw.toFixed(1)+'min ('+secToMMSS(s)+')'}}},
-      dl:{formatter:function(v){return v.toFixed(1)+'m';},anchor:'end',align:'top',font:{size:9,weight:'600'},color:'#374151',padding:2}
+      tooltip:{callbacks:{label:c=>{const s=Math.round(c.raw*60);return c.dataset.label+': '+c.raw.toFixed(1)+'min ('+secToMMSS(s)+')';}}}
     },
     scales:{
-      y:{min:8,max:25,title:{display:true,text:'TMO (minutos)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
+      y:{min:8,max:27,title:{display:true,text:'TMO (minutos)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
       x:{grid:{display:false}}
     }
   }
@@ -749,12 +752,15 @@ new Chart(document.getElementById('chartCandidatos'),{
       {label:'NPS Offline (%)',data:curNPS,type:'line',borderColor:'#1a1a2e',backgroundColor:'rgba(26,26,46,0.1)',borderWidth:2,pointRadius:5,pointBackgroundColor:'#1a1a2e',yAxisID:'y2',tension:0.2}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    fmt:function(v,ds,di){return di===0?secToMMSS(Math.round(v*60)):v.toFixed(0)+'%';},
+    col:function(ds,di){return di===0?'#374151':'#1a1a2e';}
+  });}}],
   options:{
-    responsive:true,maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
-      tooltip:{callbacks:{label:c=>{if(c.datasetIndex===0){const s=Math.round(c.raw*60);return'TMO: '+secToMMSS(s)}return'NPS: '+c.raw.toFixed(1)+'%'}}},
-      dl:{formatter:function(v,ctx){if(ctx.datasetIndex===0)return secToMMSS(Math.round(v*60));return v.toFixed(0)+'%';},anchor:'end',align:'top',font:{size:9,weight:'700'},color:function(ctx){return ctx.datasetIndex===0?'#374151':'#1a1a2e';},padding:2}
+      tooltip:{callbacks:{label:c=>{if(c.datasetIndex===0){const s=Math.round(c.raw*60);return'TMO: '+secToMMSS(s)}return'NPS: '+c.raw.toFixed(1)+'%';}}}
     },
     scales:{
       y:{position:'left',min:0,max:55,title:{display:true,text:'TMO (min)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
@@ -776,12 +782,16 @@ new Chart(document.getElementById('chartProjecaoTMO'),{
       {label:'msaquino (referência)',data:new Array(10).fill(10.3),type:'line',borderColor:'#7c3aed',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    skip:function(ds){return ds.type==='line';},
+    fmt:function(v){return secToMMSS(Math.round(v*60));},
+    col:'white',rot:-90,fs:8
+  });}}],
   options:{
     responsive:true,maintainAspectRatio:false,
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
-      tooltip:{callbacks:{label:c=>{if(c.dataset.type==='line')return'Ref msaquino: 10m 18s';const s=Math.round(c.raw*60);return c.dataset.label+': '+secToMMSS(s)}}},
-      dl:{display:function(ctx){return ctx.dataset.type!=='line';},formatter:function(v){return secToMMSS(Math.round(v*60));},rotation:-90,anchor:'end',align:'start',font:{size:8,weight:'600'},color:'white',padding:3}
+      tooltip:{callbacks:{label:c=>{if(c.dataset.type==='line')return'Ref msaquino: 10m 18s';const s=Math.round(c.raw*60);return c.dataset.label+': '+secToMMSS(s);}}}
     },
     scales:{
       y:{min:0,max:50,title:{display:true,text:'TMO (minutos)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
@@ -800,12 +810,14 @@ new Chart(document.getElementById('chartHorasProj'),{
       {label:'Horas salvas — 180d',data:horasSalvas180,backgroundColor:'rgba(0,166,80,0.75)',borderRadius:4}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    fmt:function(v){return v.toFixed(1)+'h';}
+  });}}],
   options:{
-    responsive:true,maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
-      tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'h/mês'}},
-      dl:{formatter:function(v){return v.toFixed(1)+'h';},anchor:'end',align:'top',font:{size:9,weight:'600'},color:'#374151',padding:2}
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'h/mês'}}
     },
     scales:{
       y:{title:{display:true,text:'Horas/mês'},grid:{color:'rgba(0,0,0,0.05)'}},
@@ -826,12 +838,16 @@ new Chart(document.getElementById('chartProjecaoNPS'),{
       {label:'msaquino (ref 76%)',data:new Array(10).fill(76),type:'line',borderColor:'#7c3aed',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    skip:function(ds){return ds.type==='line';},
+    fmt:function(v){return v+'%';},
+    col:'white',rot:-90,fs:8
+  });}}],
   options:{
     responsive:true,maintainAspectRatio:false,
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
-      tooltip:{callbacks:{label:c=>c.dataset.type==='line'?'Ref msaquino NPS: 76%':c.dataset.label+': '+c.raw+'%'}},
-      dl:{display:function(ctx){return ctx.dataset.type!=='line';},formatter:function(v){return v+'%';},rotation:-90,anchor:'end',align:'start',font:{size:8,weight:'600'},color:'white',padding:3}
+      tooltip:{callbacks:{label:c=>c.dataset.type==='line'?'Ref msaquino NPS: 76%':c.dataset.label+': '+c.raw+'%'}}
     },
     scales:{
       y:{min:0,max:100,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},
@@ -850,22 +866,20 @@ new Chart(document.getElementById('chartMsaquino'),{
       {label:'NPS (%)',data:msaNPS,borderColor:'#009EE3',backgroundColor:'rgba(0,158,227,0.07)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.3,yAxisID:'y2'}
     ]
   },
+  plugins:[{id:'lbl',afterDatasetsDraw:function(ch){drawLbls(ch,{
+    fmt:function(v,ds,di){return di===0?secToMMSS(Math.round(v*60)):v.toFixed(0)+'%';},
+    col:function(ds,di){return di===0?'#E74C3C':'#009EE3';}
+  });}}],
   options:{
-    responsive:true,maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{
       legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
-      tooltip:{callbacks:{label:c=>{if(c.datasetIndex===0){const s=Math.round(c.raw*60);return'TMO: '+secToMMSS(s)}return'NPS: '+c.raw.toFixed(1)+'%'}}},
-      dl:{formatter:function(v,ctx){if(ctx.datasetIndex===0)return secToMMSS(Math.round(v*60));return v.toFixed(0)+'%';},anchor:'end',align:'top',font:{size:9,weight:'600'},color:function(ctx){return ctx.datasetIndex===0?'#E74C3C':'#009EE3';},padding:2}
+      tooltip:{callbacks:{label:c=>{if(c.datasetIndex===0){const s=Math.round(c.raw*60);return'TMO: '+secToMMSS(s)}return'NPS: '+c.raw.toFixed(1)+'%';}}}
     },
     scales:{
-      y:{position:'left',min:0,max:30,title:{display:true,text:'TMO (min)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
-      y2:{position:'right',min:30,max:100,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{display:false}},
+      y:{position:'left',min:0,max:32,title:{display:true,text:'TMO (min)'},ticks:{callback:v=>v+'m'},grid:{color:'rgba(0,0,0,0.05)'}},
+      y2:{position:'right',min:30,max:105,title:{display:true,text:'NPS (%)'},ticks:{callback:v=>v+'%'},grid:{display:false}},
       x:{grid:{display:false},ticks:{font:{size:10}}}
-    },
-    annotation:{
-      annotations:{
-        line1:{type:'line',xMin:4,xMax:4,borderColor:'rgba(100,100,100,0.4)',borderWidth:1.5,borderDash:[4,3],label:{content:'Início do prompt',enabled:true,position:'top',font:{size:9}}}
-      }
     }
   }
 });
