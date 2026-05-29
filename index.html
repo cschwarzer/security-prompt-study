@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Estudo de Impacto — Iniciativa Prompt ChatGPT | Security BR | Melicidade</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" onerror="window._dlFailed=true"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#2c3e50;font-size:14px}
@@ -541,7 +541,7 @@ function toMin(s){return s==null?null:Math.round(s/60*10)/10}
 
 Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
 Chart.defaults.font.size=11;
-Chart.register(ChartDataLabels);
+if(typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
 
 // ─── DATA ───────────────────────────────────────────────────────────────────
 
